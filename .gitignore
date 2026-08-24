@@ -1,5 +1,18 @@
-# Created by https://www.toptal.com/developers/gitignore/api/terraform
-# Edit at https://www.toptal.com/developers/gitignore?templates=terraform
+# Created by https://www.toptal.com/developers/gitignore/api/terraform,sonarqube
+# Edit at https://www.toptal.com/developers/gitignore?templates=terraform,sonarqube
+
+### SonarQube ###
+# SonarQube ignore files.
+#
+# https://docs.sonarqube.org/display/SCAN/Analyzing+with+SonarQube+Scanner
+# Sonar Scanner working directories
+.sonar/
+.sonarqube/
+.scannerwork/
+
+# http://www.sonarlint.org/commandline/
+# SonarLint working directories, configuration files (including credentials)
+.sonarlint/
 
 ### Terraform ###
 # Local .terraform directories
@@ -37,21 +50,6 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-# End of https://www.toptal.com/developers/gitignore/api/terraform
+# End of https://www.toptal.com/developers/gitignore/api/terraform,sonarqube
 
-# OS files
-Thumbs.db
-.DS_Store
-
-# IDE
-.vscode/
-.idea/
-
-# Credenciales locales
-*.pem
-*.p12
-*.pfx
-
-# Scripts locales (si usas archivos .tfvars locales)
-*.local.tfvars
-*.override.tfvars
+sonar-project.properties

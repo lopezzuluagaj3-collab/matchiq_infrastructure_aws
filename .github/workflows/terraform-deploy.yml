@@ -1,0 +1,193 @@
+name: 'Terraform AWS Deploy'
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  plan:
+    name: 'Terraform Plan + SonarCloud Scan'
+    runs-on: ubuntu-latest
+
+    outputs:
+      plan_exitcode: ${{ steps.plan.outcome }}
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+
+      - name: Configurar credenciales de AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502
+        with:
+          role-to-assume: "${{ secrets.AWS_ROLE_ARN }}"
+          aws-region: "${{ secrets.AWS_REGION }}"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
+        with:
+          terraform_version: "1.11.0"
+
+      # Generar los archivos .pub locales en el runner desde GitHub Secrets
+      - name: Configurar archivos de llaves SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PUBLIC_KEY_PROXY }}" > ~/.ssh/id_rsa_proxy.pub
+          echo "${{ secrets.SSH_PUBLIC_KEY_GENERAL }}" > ~/.ssh/id_rsa_general.pub
+          chmod 600 ~/.ssh/id_rsa_proxy.pub ~/.ssh/id_rsa_general.pub
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Format
+        run: terraform fmt -check
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -out=tfplan -no-color | tee plan_output.txt
+        env:
+          TF_VAR_key_proxy: "/home/runner/.ssh/id_rsa_proxy.pub"
+          TF_VAR_key_general: "/home/runner/.ssh/id_rsa_general.pub"
+          TF_VAR_aws_region: "${{ secrets.AWS_REGION }}"
+          TF_VAR_environment: "prod"
+          TF_VAR_owner: "matchiq"
+
+      - name: Guardar plan como artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tfplan
+          path: |
+            tfplan
+            plan_output.txt
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@689fb39b34b9aa95ebc5f8f119343ddd51542402
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.projectKey=lopezzuluagaj3-collab_pipeline-sirius-tlc
+            -Dsonar.organization=lopezzuluagaj3-collab
+            -Dsonar.qualitygate.wait=true
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+
+      - name: Consultar Quality Gate de SonarCloud
+        working-directory: .
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          set -e
+          TASK_FILE=".scannerwork/report-task.txt"
+
+          if [ ! -f "$TASK_FILE" ]; then
+            echo "No se encontró report-task.txt — el scan pudo haber fallado." | tee sonar_result.txt
+            exit 0
+          fi
+
+          CE_TASK_URL=$(grep "ceTaskUrl=" "$TASK_FILE" | cut -d'=' -f2-)
+          PROJECT_KEY=$(grep "projectKey=" "$TASK_FILE" | cut -d'=' -f2-)
+
+          echo "Esperando que el procesamiento del background task finalice en SonarCloud..."
+          STATUS="PENDING"
+          for i in $(seq 1 30); do
+            RESPONSE=$(curl -s -u "${SONAR_TOKEN}:" "$CE_TASK_URL")
+            STATUS=$(echo "$RESPONSE" | jq -r '.task.status')
+            echo "Estado de la tarea: $STATUS"
+            if [ "$STATUS" = "SUCCESS" ] || [ "$STATUS" = "FAILED" ] || [ "$STATUS" = "CANCELED" ]; then
+              break
+            fi
+            sleep 5
+          done
+
+          if [ "$STATUS" != "SUCCESS" ]; then
+            echo "El análisis no terminó correctamente en el servidor (estado: $STATUS)" | tee sonar_result.txt
+            exit 0
+          fi
+
+          ANALYSIS_ID=$(echo "$RESPONSE" | jq -r '.task.analysisId')
+          sleep 3
+
+          QG_RESPONSE=$(curl -s -u "${SONAR_TOKEN}:" "https://sonarcloud.io/api/qualitygates/project_status?analysisId=$ANALYSIS_ID")
+          QG_STATUS=$(echo "$QG_RESPONSE" | jq -r '.projectStatus.status')
+
+          {
+            echo "=== Resultado SonarCloud ==="
+            echo "Quality Gate: $QG_STATUS"
+            echo ""
+            echo "Condiciones evaluadas:"
+            echo "$QG_RESPONSE" | jq -r '.projectStatus.conditions[]? | "- \(.metricKey): \(.status) (actual: \(.actualValue // "N/A"), umbral: \(.errorThreshold // "N/A"))"'
+            echo ""
+            echo "Ver detalle completo: https://sonarcloud.io/dashboard?id=${PROJECT_KEY}"
+          } | tee sonar_result.txt
+
+      - name: Enviar correo con resultado del plan y SonarCloud
+        uses: dawidd6/action-send-mail@4226df7daafa6fc901a43789c49bf7ab309066e7
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "Terraform Plan + SonarCloud - Sirius (pendiente de aprobación)"
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: "CI Sirius <${{ secrets.SMTP_USERNAME }}>"
+          body: "Se generó un nuevo plan de Terraform para Sirius, junto con el resultado del análisis de SonarCloud. Revisa los adjuntos y aprueba manualmente el apply en GitHub Actions si todo está correcto."
+          attachments: |
+            plan_output.txt
+            sonar_result.txt
+
+  apply:
+    name: 'Terraform Apply (requiere aprobación manual)'
+    needs: plan
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Configurar credenciales de AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502
+        with:
+          role-to-assume: "${{ secrets.AWS_ROLE_ARN }}"
+          aws-region: "${{ secrets.AWS_REGION }}"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
+        with:
+          terraform_version: "1.11.0"
+
+      # Generar los archivos .pub locales en el runner también para el Apply
+      - name: Configurar archivos de llaves SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PUBLIC_KEY_PROXY }}" > ~/.ssh/id_rsa_proxy.pub
+          echo "${{ secrets.SSH_PUBLIC_KEY_GENERAL }}" > ~/.ssh/id_rsa_general.pub
+          chmod 600 ~/.ssh/id_rsa_proxy.pub ~/.ssh/id_rsa_general.pub
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Descargar plan guardado
+        uses: actions/download-artifact@bf8f7d968aaaabcfa201d1db7d5cbd8f3d68400a
+        with:
+          name: tfplan
+
+      - name: Terraform Apply
+        run: terraform apply tfplan
+        env:
+          TF_VAR_key_proxy: "/home/runner/.ssh/id_rsa_proxy.pub"
+          TF_VAR_key_general: "/home/runner/.ssh/id_rsa_general.pub"
+          TF_VAR_aws_region: "${{ secrets.AWS_REGION }}"
+          TF_VAR_environment: "prod"
+          TF_VAR_owner: "matchiq"
