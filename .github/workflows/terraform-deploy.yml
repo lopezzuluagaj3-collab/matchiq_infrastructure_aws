@@ -79,7 +79,7 @@ jobs:
         with:
           projectBaseDir: .
           args: >
-            -Dsonar.projectKey=lopezzuluagaj3-collab_pipeline-sirius-tlc
+            -Dsonar.projectKey=lopezzuluagaj3-collab_matchiq_infrastructure_aws
             -Dsonar.organization=lopezzuluagaj3-collab
             -Dsonar.qualitygate.wait=true
         env:
