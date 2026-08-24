@@ -59,11 +59,12 @@ jobs:
         id: plan
         run: terraform plan -out=tfplan -no-color | tee plan_output.txt
         env:
-          TF_VAR_key_proxy: "/home/runner/.ssh/id_rsa_proxy.pub"
-          TF_VAR_key_general: "/home/runner/.ssh/id_rsa_general.pub"
+          TF_VAR_KEY_PROXY: "/home/runner/.ssh/id_rsa_proxy.pub"
+          TF_VAR_KEY_GENERAL: "/home/runner/.ssh/id_rsa_general.pub"
           TF_VAR_aws_region: "${{ secrets.AWS_REGION }}"
           TF_VAR_environment: "prod"
           TF_VAR_owner: "matchiq"
+          TF_VAR_allowed_ssh_cidr: "0.0.0.0/0"
 
       - name: Guardar plan como artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
