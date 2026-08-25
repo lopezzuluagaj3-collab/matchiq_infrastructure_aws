@@ -2,13 +2,13 @@ provider "aws" {
   region = var.aws_region
 }
 
-data "aws_ami" "amazon_linux_2" {
+data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = ["amazon"]
+  owners      = ["099720109477"]
 
   filter {
     name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
   }
 
   filter {
@@ -45,7 +45,7 @@ module "security_groups" {
 module "compute" {
   source = "./modules/compute"
   proxy_eip_allocation_id = "eipalloc-0e19fa47bcb2ae1e6"
-  ami                  = "ami-0b6d9d3d33ba97d99"
+  ami                  = data.aws_ami.ubuntu.id
   subnet_publica_id    = module.networking.subnet_publica_id
   subnet_privada_id    = module.networking.subnet_privada_id
   sg_proxy_id          = module.security_groups.sg_proxy_id
