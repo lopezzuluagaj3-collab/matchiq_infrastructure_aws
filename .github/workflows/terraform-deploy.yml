@@ -34,6 +34,7 @@ jobs:
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
         with:
           terraform_version: "1.11.0"
+          terraform_wrapper: false
 
       # Generar los archivos .pub locales en el runner desde GitHub Secrets
       - name: Configurar archivos de llaves SSH
@@ -170,6 +171,7 @@ jobs:
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
         with:
           terraform_version: "1.11.0"
+          terraform_wrapper: false
 
       # Generar los archivos .pub locales en el runner también para el Apply
       - name: Configurar archivos de llaves SSH
