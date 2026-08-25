@@ -36,12 +36,15 @@ jobs:
           terraform_version: "1.11.0"
           terraform_wrapper: false
 
-      # Generar los archivos .pub locales en el runner desde GitHub Secrets
+# Generar los archivos .pub locales en el runner desde GitHub Secrets
       - name: Configurar archivos de llaves SSH
+        env:
+          SSH_KEY_PROXY: ${{ secrets.SSH_PUBLIC_KEY_PROXY }}
+          SSH_KEY_GENERAL: ${{ secrets.SSH_PUBLIC_KEY_GENERAL }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PUBLIC_KEY_PROXY }}" > ~/.ssh/id_rsa_proxy.pub
-          echo "${{ secrets.SSH_PUBLIC_KEY_GENERAL }}" > ~/.ssh/id_rsa_general.pub
+          echo "$SSH_KEY_PROXY" > ~/.ssh/id_rsa_proxy.pub
+          echo "$SSH_KEY_GENERAL" > ~/.ssh/id_rsa_general.pub
           chmod 644 ~/.ssh/id_rsa_proxy.pub ~/.ssh/id_rsa_general.pub
 
       - name: Terraform Init
@@ -174,13 +177,15 @@ jobs:
         with:
           terraform_version: "1.11.0"
           terraform_wrapper: false
-
-      # Generar los archivos .pub locales en el runner también para el Apply
+          
       - name: Configurar archivos de llaves SSH
+        env:
+          SSH_KEY_PROXY: ${{ secrets.SSH_PUBLIC_KEY_PROXY }}
+          SSH_KEY_GENERAL: ${{ secrets.SSH_PUBLIC_KEY_GENERAL }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PUBLIC_KEY_PROXY }}" > ~/.ssh/id_rsa_proxy.pub
-          echo "${{ secrets.SSH_PUBLIC_KEY_GENERAL }}" > ~/.ssh/id_rsa_general.pub
+          echo "$SSH_KEY_PROXY" > ~/.ssh/id_rsa_proxy.pub
+          echo "$SSH_KEY_GENERAL" > ~/.ssh/id_rsa_general.pub
           chmod 644 ~/.ssh/id_rsa_proxy.pub ~/.ssh/id_rsa_general.pub
 
       - name: Terraform Init

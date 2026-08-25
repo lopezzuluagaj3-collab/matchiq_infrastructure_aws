@@ -33,19 +33,13 @@ variable "allowed_ssh_cidr" {
 }
 
 variable "KEY_PROXY" {
-  description = "Nombre del key pair para el servidor proxy"
+  description = "Ruta al archivo de clave pública SSH para el servidor proxy"
   type        = string
   sensitive   = true
 }
 
 variable "KEY_GENERAL" {
-  description = "Nombre del key pair para los servidores privados"
+  description = "Ruta al archivo de clave pública SSH para los servidores privados"
   type        = string
   sensitive   = true
-}
-
-variable "proxy_eip_allocation_id" {
-  description = "Allocation ID de la Elastic IP existente para el proxy. Si se deja vacío, Terraform crea una nueva EIP."
-  type        = string
-  default     = ""
 }

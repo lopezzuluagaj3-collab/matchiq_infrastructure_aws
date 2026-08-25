@@ -44,7 +44,6 @@ module "security_groups" {
 
 module "compute" {
   source = "./modules/compute"
-  proxy_eip_allocation_id = "eipalloc-0e19fa47bcb2ae1e6"
   ami                  = data.aws_ami.ubuntu.id
   subnet_publica_id    = module.networking.subnet_publica_id
   subnet_privada_id    = module.networking.subnet_privada_id

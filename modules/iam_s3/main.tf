@@ -1,3 +1,5 @@
+data "aws_caller_identity" "current" {}
+
 # 1. Bucket
 
 resource "aws_s3_bucket" "main" {
@@ -36,6 +38,32 @@ resource "aws_s3_bucket_public_access_block" "main" {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_logging" "main" {
+  bucket = aws_s3_bucket.main.id
+  target_bucket = aws_s3_bucket.main.id
+  target_prefix = "logs/"
+}
+
+resource "aws_s3_bucket_policy" "main" {
+  bucket = aws_s3_bucket.main.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = { Service = "logging.s3.amazonaws.com" }
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.main.arn}/logs/*"
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+          }
+        }
+      }
+    ]
+  })
 }
 
 # 2. User para logs de Airflow

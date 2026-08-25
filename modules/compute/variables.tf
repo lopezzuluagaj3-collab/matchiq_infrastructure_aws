@@ -3,12 +3,6 @@ variable "ami" {
   type        = string
 }
 
-variable "proxy_eip_allocation_id" {
-  description = "Allocation ID de la Elastic IP existente para el proxy (ej: eipalloc-xxxxxxxx). Si se deja vacío, Terraform crea una nueva."
-  type        = string
-  default     = ""
-}
-
 variable "subnet_publica_id" {
   description = "ID de la subnet pública (para el proxy)"
   type        = string
@@ -45,13 +39,13 @@ variable "sg_db_id" {
 }
 
 variable "key_proxy" {
-  description = "Key pair para el servidor proxy"
+  description = "Ruta local al archivo de clave pública para el servidor proxy"
   type        = string
   sensitive   = true
 }
 
 variable "key_general" {
-  description = "Key pair para los servidores privados"
+  description = "Ruta local al archivo de clave pública para los servidores privados"
   type        = string
   sensitive   = true
 }
