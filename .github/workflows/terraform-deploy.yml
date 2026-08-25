@@ -36,17 +36,6 @@ jobs:
           terraform_version: "1.11.0"
           terraform_wrapper: false
 
-# Generar los archivos .pub locales en el runner desde GitHub Secrets
-      - name: Configurar archivos de llaves SSH
-        env:
-          SSH_KEY_PROXY: ${{ secrets.SSH_PUBLIC_KEY_PROXY }}
-          SSH_KEY_GENERAL: ${{ secrets.SSH_PUBLIC_KEY_GENERAL }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_KEY_PROXY" > ~/.ssh/id_rsa_proxy.pub
-          echo "$SSH_KEY_GENERAL" > ~/.ssh/id_rsa_general.pub
-          chmod 644 ~/.ssh/id_rsa_proxy.pub ~/.ssh/id_rsa_general.pub
-
       - name: Terraform Init
         run: terraform init
 
@@ -65,8 +54,8 @@ jobs:
           set -o pipefail
           terraform plan -out=tfplan -no-color | tee plan_output.txt
         env:
-          TF_VAR_KEY_PROXY: "/home/runner/.ssh/id_rsa_proxy.pub"
-          TF_VAR_KEY_GENERAL: "/home/runner/.ssh/id_rsa_general.pub"
+          TF_VAR_KEY_PROXY: "${{ secrets.KEY_PROXY }}"
+          TF_VAR_KEY_GENERAL: "${{ secrets.KEY_GENERAL }}"
           TF_VAR_aws_region: "${{ secrets.AWS_REGION }}"
           TF_VAR_environment: "prod"
           TF_VAR_owner: "matchiq"
@@ -177,16 +166,6 @@ jobs:
         with:
           terraform_version: "1.11.0"
           terraform_wrapper: false
-          
-      - name: Configurar archivos de llaves SSH
-        env:
-          SSH_KEY_PROXY: ${{ secrets.SSH_PUBLIC_KEY_PROXY }}
-          SSH_KEY_GENERAL: ${{ secrets.SSH_PUBLIC_KEY_GENERAL }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_KEY_PROXY" > ~/.ssh/id_rsa_proxy.pub
-          echo "$SSH_KEY_GENERAL" > ~/.ssh/id_rsa_general.pub
-          chmod 644 ~/.ssh/id_rsa_proxy.pub ~/.ssh/id_rsa_general.pub
 
       - name: Terraform Init
         run: terraform init
@@ -199,8 +178,8 @@ jobs:
       - name: Terraform Apply
         run: terraform apply tfplan
         env:
-          TF_VAR_KEY_PROXY: "/home/runner/.ssh/id_rsa_proxy.pub"
-          TF_VAR_KEY_GENERAL: "/home/runner/.ssh/id_rsa_general.pub"
+          TF_VAR_KEY_PROXY: "${{ secrets.KEY_PROXY }}"
+          TF_VAR_KEY_GENERAL: "${{ secrets.KEY_GENERAL }}"
           TF_VAR_aws_region: "${{ secrets.AWS_REGION }}"
           TF_VAR_environment: "prod"
           TF_VAR_owner: "matchiq"

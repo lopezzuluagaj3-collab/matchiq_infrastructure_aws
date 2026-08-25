@@ -33,13 +33,11 @@ variable "allowed_ssh_cidr" {
 }
 
 variable "KEY_PROXY" {
-  description = "Ruta al archivo de clave pública SSH para el servidor proxy"
+  description = "Nombre del key pair para el servidor proxy"
   type        = string
-  sensitive   = true
 }
 
 variable "KEY_GENERAL" {
-  description = "Ruta al archivo de clave pública SSH para los servidores privados"
+  description = "Nombre del key pair para los servidores privados"
   type        = string
-  sensitive   = true
 }

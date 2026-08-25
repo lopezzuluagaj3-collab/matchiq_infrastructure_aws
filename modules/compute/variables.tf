@@ -39,15 +39,13 @@ variable "sg_db_id" {
 }
 
 variable "key_proxy" {
-  description = "Ruta local al archivo de clave pública para el servidor proxy"
+  description = "Nombre del key pair para el servidor proxy"
   type        = string
-  sensitive   = true
 }
 
 variable "key_general" {
-  description = "Ruta local al archivo de clave pública para los servidores privados"
+  description = "Nombre del key pair para los servidores privados"
   type        = string
-  sensitive   = true
 }
 
 variable "environment" {
