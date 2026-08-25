@@ -1,14 +1,15 @@
 resource "aws_instance" "svr_proxy" {
-  ami                    = var.ami
-  instance_type          = "t3.small"
-  subnet_id              = var.subnet_publica_id
-  vpc_security_group_ids = [var.sg_proxy_id]
-  key_name               = var.key_proxy
+  ami                         = var.ami
+  instance_type               = "t3.small"
+  subnet_id                   = var.subnet_publica_id
+  vpc_security_group_ids      = [var.sg_proxy_id]
+  key_name                    = var.key_proxy
+  associate_public_ip_address = true
 
   root_block_device {
     volume_size           = 32
     volume_type           = "gp3"
-    encrypted             = false
+    encrypted             = true
     delete_on_termination = true
   }
 
@@ -40,16 +41,17 @@ resource "aws_eip_association" "proxy_eip_assoc" {
 }
 
 resource "aws_instance" "svr_back" {
-  ami                    = var.ami
-  instance_type          = "c7i-flex.large"
-  subnet_id              = var.subnet_privada_id
-  vpc_security_group_ids = [var.sg_back_id]
-  key_name               = var.key_general
+  ami                         = var.ami
+  instance_type               = "c7i-flex.large"
+  subnet_id                   = var.subnet_privada_id
+  vpc_security_group_ids      = [var.sg_back_id]
+  key_name                    = var.key_general
+  associate_public_ip_address = false
 
   root_block_device {
     volume_size           = 32
     volume_type           = "gp3"
-    encrypted             = false
+    encrypted             = true
     delete_on_termination = true
   }
 
@@ -62,16 +64,17 @@ resource "aws_instance" "svr_back" {
 }
 
 resource "aws_instance" "svr_ia" {
-  ami                    = var.ami
-  instance_type          = "m7i-flex.large"
-  subnet_id              = var.subnet_privada_id
-  vpc_security_group_ids = [var.sg_ia_id]
-  key_name               = var.key_general
+  ami                         = var.ami
+  instance_type               = "m7i-flex.large"
+  subnet_id                   = var.subnet_privada_id
+  vpc_security_group_ids      = [var.sg_ia_id]
+  key_name                    = var.key_general
+  associate_public_ip_address = false
 
   root_block_device {
     volume_size           = 64
     volume_type           = "gp3"
-    encrypted             = false
+    encrypted             = true
     delete_on_termination = true
   }
 
@@ -84,16 +87,17 @@ resource "aws_instance" "svr_ia" {
 }
 
 resource "aws_instance" "svr_front" {
-  ami                    = var.ami
-  instance_type          = "c7i-flex.large"
-  subnet_id              = var.subnet_privada_id
-  vpc_security_group_ids = [var.sg_front_id]
-  key_name               = var.key_general
+  ami                         = var.ami
+  instance_type               = "c7i-flex.large"
+  subnet_id                   = var.subnet_privada_id
+  vpc_security_group_ids      = [var.sg_front_id]
+  key_name                    = var.key_general
+  associate_public_ip_address = false
 
   root_block_device {
     volume_size           = 32
     volume_type           = "gp3"
-    encrypted             = false
+    encrypted             = true
     delete_on_termination = true
   }
 
@@ -106,16 +110,17 @@ resource "aws_instance" "svr_front" {
 }
 
 resource "aws_instance" "svr_db" {
-  ami                    = var.ami
-  instance_type          = "t3.micro"
-  subnet_id              = var.subnet_privada_id
-  vpc_security_group_ids = [var.sg_db_id]
-  key_name               = var.key_general
+  ami                         = var.ami
+  instance_type               = "t3.micro"
+  subnet_id                   = var.subnet_privada_id
+  vpc_security_group_ids      = [var.sg_db_id]
+  key_name                    = var.key_general
+  associate_public_ip_address = false
 
   root_block_device {
     volume_size           = 64
     volume_type           = "gp3"
-    encrypted             = false
+    encrypted             = true
     delete_on_termination = true
   }
 
