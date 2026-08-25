@@ -57,7 +57,7 @@ jobs:
           TF_VAR_KEY_PROXY: "${{ secrets.SSH_PUBLIC_KEY_PROXY }}"
           TF_VAR_KEY_GENERAL: "${{ secrets.SSH_PUBLIC_KEY_GENERAL }}"
           TF_VAR_aws_region: "${{ secrets.AWS_REGION }}"
-          TF_VAR_environment: "prod"
+          TF_VAR_environment: "dev"
           TF_VAR_owner: "matchiq"
           TF_VAR_allowed_ssh_cidr: "0.0.0.0/0"
 
@@ -184,5 +184,5 @@ jobs:
           TF_VAR_KEY_PROXY: "${{ secrets.SSH_PUBLIC_KEY_PROXY }}"
           TF_VAR_KEY_GENERAL: "${{ secrets.SSH_PUBLIC_KEY_GENERAL }}"
           TF_VAR_aws_region: "${{ secrets.AWS_REGION }}"
-          TF_VAR_environment: "prod"
+          TF_VAR_environment: "dev"
           TF_VAR_owner: "matchiq"
