@@ -54,8 +54,8 @@ jobs:
           set -o pipefail
           terraform plan -out=tfplan -no-color | tee plan_output.txt
         env:
-          TF_VAR_KEY_PROXY: "${{ secrets.KEY_PROXY }}"
-          TF_VAR_KEY_GENERAL: "${{ secrets.KEY_GENERAL }}"
+          TF_VAR_KEY_PROXY: "${{ secrets.SSH_PUBLIC_KEY_PROXY }}"
+          TF_VAR_KEY_GENERAL: "${{ secrets.SSH_PUBLIC_KEY_GENERAL }}"
           TF_VAR_aws_region: "${{ secrets.AWS_REGION }}"
           TF_VAR_environment: "prod"
           TF_VAR_owner: "matchiq"
@@ -178,8 +178,8 @@ jobs:
       - name: Terraform Apply
         run: terraform apply tfplan
         env:
-          TF_VAR_KEY_PROXY: "${{ secrets.KEY_PROXY }}"
-          TF_VAR_KEY_GENERAL: "${{ secrets.KEY_GENERAL }}"
+          TF_VAR_KEY_PROXY: "${{ secrets.SSH_PUBLIC_KEY_PROXY }}"
+          TF_VAR_KEY_GENERAL: "${{ secrets.SSH_PUBLIC_KEY_GENERAL }}"
           TF_VAR_aws_region: "${{ secrets.AWS_REGION }}"
           TF_VAR_environment: "prod"
           TF_VAR_owner: "matchiq"
