@@ -56,7 +56,7 @@ jobs:
           framework: terraform
           output_format: cli,json
           output_file_path: console,checkov-report.json
-          soft_fail: true  
+          soft_fail: true  # no bloquea el pipeline por defecto...
           hard_fail_on: CKV_AWS_79  # ...pero SÍ bloquea si aparece IMDSv1 (riesgo real)
           skip_check: CKV_AWS_88,CKV_AWS_130,CKV_AWS_260,CKV_AWS_24,CKV_AWS_273  # falsos positivos ya conocidos en esta arquitectura
           download_external_modules: true
@@ -162,7 +162,9 @@ jobs:
       - name: Asegurar que existan los reportes antes de adjuntar
         if: always()
         run: |
-          touch plan_output.txt sonar_result.txt checkov-report.json
+          for f in plan_output.txt sonar_result.txt checkov-report.json; do
+            [ -f "$f" ] || touch "$f"
+          done
 
       - name: Enviar correo con resultado del plan, SonarCloud y Checkov
         if: always()
