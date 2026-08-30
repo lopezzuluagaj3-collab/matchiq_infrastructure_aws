@@ -11,6 +11,11 @@ resource "aws_instance" "svr_proxy" {
   key_name                    = local.key_proxy_name
   associate_public_ip_address = true
 
+  metadata_options {
+    http_tokens   = "required"
+    http_endpoint = "enabled"
+  }
+
   root_block_device {
     volume_size           = 32
     volume_type           = "gp3"
@@ -46,6 +51,11 @@ resource "aws_instance" "svr_back" {
   key_name                    = local.key_general_name
   associate_public_ip_address = false
 
+  metadata_options {
+    http_tokens   = "required"
+    http_endpoint = "enabled"
+  }
+
   root_block_device {
     volume_size           = 32
     volume_type           = "gp3"
@@ -68,6 +78,11 @@ resource "aws_instance" "svr_ia" {
   vpc_security_group_ids      = [var.sg_ia_id]
   key_name                    = local.key_general_name
   associate_public_ip_address = false
+
+  metadata_options {
+    http_tokens   = "required"
+    http_endpoint = "enabled"
+  }
 
   root_block_device {
     volume_size           = 64
@@ -92,6 +107,11 @@ resource "aws_instance" "svr_front" {
   key_name                    = local.key_general_name
   associate_public_ip_address = false
 
+  metadata_options {
+    http_tokens   = "required"
+    http_endpoint = "enabled"
+  }
+
   root_block_device {
     volume_size           = 32
     volume_type           = "gp3"
@@ -114,6 +134,11 @@ resource "aws_instance" "svr_db" {
   vpc_security_group_ids      = [var.sg_db_id]
   key_name                    = local.key_general_name
   associate_public_ip_address = false
+
+  metadata_options {
+    http_tokens   = "required"
+    http_endpoint = "enabled"
+  }
 
   root_block_device {
     volume_size           = 64
