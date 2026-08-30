@@ -48,6 +48,19 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
+      - name: Checkov - Escaneo de seguridad de Terraform
+        id: checkov
+        uses: bridgecrewio/checkov-action@dfb51aed1b783289b0d3f255028e7a88d5e8caa1
+        with:
+          directory: .
+          framework: terraform
+          output_format: cli
+          soft_fail: false  # Cambia a true si solo quieres advertir y no bloquear el pipeline
+          download_external_modules: true
+        env:
+          PRISMA_API_URL: https://api.prismacloud.io 
+          
+
       - name: Terraform Plan
         id: plan
         run: |
