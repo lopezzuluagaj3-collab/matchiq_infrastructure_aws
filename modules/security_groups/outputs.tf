@@ -3,9 +3,9 @@ output "sg_proxy_id" {
   value       = aws_security_group.sg_proxy.id
 }
 
-output "sg_ia_id" {
-  description = "ID del security group de Airflow (IA)"
-  value       = aws_security_group.sg_ia.id
+output "sg_app1_id" {
+  description = "ID del security group del servidor App1"
+  value       = aws_security_group.sg_app1.id
 }
 
 output "sg_front_id" {

@@ -1,181 +1,226 @@
-# Infrastructure Cluster AWS — MVP Deployment
+# Terraform AWS Cluster Practice
 
-Infrastructure as Code (IaC) project provisioning a complete AWS environment for an MVP application, including a public-facing reverse proxy, a backend service, a local AI inference server, a frontend, and a PostgreSQL database. The infrastructure is fully managed with Terraform across isolated public and private subnets.
+Infraestructura como Código (IaC) para el despliegue de un entorno productivo en AWS, compuesto por múltiples servicios de aplicación, cómputo, mensajería y almacenamiento, totalmente modularizado y versionado con Terraform.
 
-## Overview
+## Descripción general
 
-This project was built to deploy a Minimum Viable Product (MVP) requested by a client, consisting of four core components running on dedicated EC2 instances within a custom VPC:
+Este proyecto provisiona un entorno AWS aislado y seguro para ejecutar una arquitectura multi-servicio en capas. El stack incluye un punto de entrada público, servicios de aplicación en subred privada y una base de datos relacional. Toda la infraestructura se despliega como código reproducible, con políticas de seguridad aplicadas por defecto, escaneo automatizado de cumplimiento y pipeline CI/CD para validación automática de cambios.
 
-- **Reverse Proxy** — public-facing entry point handling HTTP/HTTPS traffic and routing to internal services
-- **Backend** — application server exposing the API consumed by the frontend and the apk client
-- **AI Server** — local inference service running machine learning workloads
-- **Database** — PostgreSQL instance for persistent application data
-
-All compute resources, networking, and security groups are defined as code and version-controlled, enabling reproducible deployments and auditable infrastructure changes.
-
-## Architecture
+## Arquitectura
 
 ```
-                              Internet
-                                  |
-                          [ Internet Gateway ]
-                                  |
-                    ┌─────────────────────────┐
-                    │   Public Subnet          │
-                    │   10.0.1.0/24            │
-                    │                          │
-                    │   ┌──────────────────┐   │
-                    │   │  Proxy (EC2)     │   │
-                    │   │  Elastic IP      │   │
-                    │   └────────┬─────────┘   │
-                    └────────────┼─────────────┘
-                                 |
-                    ┌────────────┼─────────────┐
-                    │   Private Subnet          │
-                    │   10.0.2.0/24             │
-                    │                           │
-                    │  ┌──────────┐ ┌─────────┐ │
-                    │  │ Backend  │ │Frontend │ │
-                    │  └────┬─────┘ └─────────┘ │
-                    │       │                    │
-                    │  ┌────┴─────┐ ┌──────────┐ │
-                    │  │ AI Server│ │ Database │ │
-                    │  └──────────┘ └──────────┘ │
-                    └───────────────────────────┘
-                                 |
-                          [ NAT Gateway ]
-                                 |
-                              Internet
-                       (outbound only, private subnet)
+Internet
+   |
+   |  HTTP / HTTPS / SSH (desde IP autorizada)
+   v
+[ Internet Gateway ]
+   |
+   |  Subred Pública (10.0.1.0/24)
+   |
+[ Proxy / Bastion — EC2 t3.small ]
+   |  Elastic IP estática
+   |  Acceso exclusivo desde SG de administración
+   v
+[ NAT Gateway ]
+   |
+   |  Subred Privada (10.0.2.0/24)
+   |
+   |-- [ App Server 1 — EC2 m7i-flex.large ]
+   |-- [ App Server 2 / Workers — EC2 c7i-flex.large ]
+   |-- [ Backend / API + RabbitMQ — EC2 c7i-flex.large ]
+   |-- [ Base de Datos — EC2 t3.micro ]
 ```
 
-The public subnet hosts only the reverse proxy, which is the sole entry point reachable from the internet. All other services live in the private subnet and are reachable exclusively through security group references, never via public IP. Outbound internet access for the private subnet (package installs, updates) is routed through a NAT Gateway.
+- **Zona pública:** solo el proxy/bastion tiene acceso directo desde internet.
+- **Zona privada:** todos los servicios de aplicación y datos. Sin IPs públicas.
+- **Conectividad:** tráfico entre servicios exclusivamente por referencias de Security Groups.
+- **Modelo:** una instancia EC2 dedicada por servicio, aislando responsabilidades y permitiendo escalado independiente.
 
-## Infrastructure Components
+## Componentes
 
-| Resource | Description |
-|---|---|
-| VPC | Custom VPC, CIDR `10.0.0.0/16` |
-| Public Subnet | `10.0.1.0/24` — hosts the proxy |
-| Private Subnet | `10.0.2.0/24` — hosts backend, frontend, AI server, database |
-| Internet Gateway | Provides public subnet internet access |
-| NAT Gateway | Provides outbound-only internet access for the private subnet |
-| Elastic IP | Static public IP attached to the proxy instance, bound to existing DNS records |
-| 5x EC2 Instances | Proxy, Backend, Frontend, AI Server, Database |
-| 5x Security Groups | One per service, least-privilege ingress rules |
-
-## Security Groups
-
-Access between services is controlled exclusively through security group references (not CIDR blocks), ensuring that only the intended services can communicate with each other.
-
-| Security Group | Purpose | Key Ingress Rules |
+| Componente | Recurso AWS | Descripción |
 |---|---|---|
-| `sg-proxy` | Public entry point | HTTP (80), HTTPS (443), Proxy UI (81), SSH from admin IP |
-| `sg-front` | Frontend service | Port 8080 from proxy, SSH from proxy |
-| `sg-back` | Backend / message broker | Port 5000 from proxy (web and apk clients), SSH from proxy |
-| `sg-ia` | AI inference server | Port 8080 from proxy, SSH from proxy |
-| `sg-db` | PostgreSQL database | Port 5432 from backend and AI server, SSH from proxy |
+| Red | VPC, Subredes, IGW, NAT GW | Aislamiento público/privado, enrutamiento controlado |
+| Seguridad | Security Groups | Acceso por SG references, sin CIDR abiertos innecesarios |
+| Cómputo | EC2 | Proxy (t3.small), Backend (c7i-flex.large), Workers (c7i-flex.large), DB (t3.micro) |
 
-## Prerequisites
+| Estado | S3 Backend | `terraform.tfstate` remoto encriptado, sin locking DinamoDB (MVP) |
 
-- [Terraform](https://www.terraform.io/downloads) >= 1.5
-- AWS CLI configured with valid credentials (`aws configure`)
-- An existing AWS key pair for SSH access to the instances
-- Appropriate IAM permissions to manage EC2, VPC, and related networking resources
+## Características de seguridad
 
-## Project Structure
+- **IMDSv2 forzado:** `http_tokens = "required"` en todas las instancias EC2.
+- **Acceso SSH restringido:** solo desde IP/CIDR administrativo definido en variable.
+- **Comunicación service-to-service:** exclusivamente por ID de Security Group, sin rangos CIDR amplios.
+- **Escaneo estático:** integrado con **Checkov** para validación de políticas CIS/PCI en cada cambio.
+- **Cifrado:** volúmenes EBS encriptados (`gp3`), backend S3 encriptado.
+
+## CI/CD
+
+Uno de los aspectos más destacados del proyecto es la integración continua y despliegue automatizado:
+
+- **Pipeline de validación:** cada cambio en el código dispara automáticamente `terraform plan` y escaneo con **Checkov** antes de cualquier aplicación.
+- **Control de calidad:** la pipeline valida sintaxis, políticas de seguridad y posibles recursos destruidos/recreados sin revisión.
+- **Seguridad por defecto:** la combinación de `terraform plan` + Checkov asegura que ningún cambio llegue a producción sin pasar por revisiones automáticas de cumplimiento.
+- **Trazabilidad:** cada ejecución deja registro de los cambios aplicados y su estado de seguridad.
+
+## Prerrequisitos
+
+- [Terraform](https://developer.hashicorp.com/terraform/downloads) `>= 1.7.0`
+- [AWS CLI](https://aws.amazon.com/cli/) configurado con credenciales válidas
+- Permisos IAM para gestionar VPC, EC2, S3, IAM y Security Groups
+- Key pairs existentes en AWS para acceso SSH (`KEY_PROXY`, `KEY_GENERAL`)
+
+## Estructura del proyecto
 
 ```
-infrastructure-cruster-aws/
-├── main.tf                    # Root module: providers, data sources, module composition
-├── variables.tf                # Input variable declarations
-├── outputs.tf                  # Output values (IPs, IDs)
-├── terraform.tfvars             # Environment-specific values (not committed)
+.
+├── main.tf                  # Módulo raíz: providers, data sources y composición
+├── variables.tf             # Variables globales (región, ambiente, keys)
+├── outputs.tf               # Salidas útiles (IPs, IDs)
+├── locals.tf                # Tags y prefijos comunes
+├── versions.tf              # Versionado de providers y backend remoto
+├── terraform.tfvars         # Valores específicos del entorno (no versionado)
+├── oidc_setup.tf            # Configuración OIDC (si aplica)
+├── checkov-report.json      # Reporte de escaneo de seguridad
 └── modules/
-    ├── networking/              # VPC, subnets, route tables, gateways
-    ├── security_groups/         # Security group definitions
-    └── compute/                 # EC2 instances, Elastic IP association
+    ├── networking/           # VPC, subredes, tablas de rutas, gateways
+    ├── security_groups/      # Definición de SGs por servicio
+    ├── compute/              # Instancias EC2, EIP, discos
+
 ```
 
-## Getting Started
+## Uso
 
-### 1. Clone the repository
+### 1. Clonar el repositorio
 
 ```bash
 git clone <repository-url>
-cd infrastructure-cruster-aws
+cd matchiq_infrastructure_aws
 ```
 
-### 2. Configure variables
+### 2. Configurar variables
 
-Create a `terraform.tfvars` file in the project root with your environment-specific values:
+Crear `terraform.tfvars` en la raíz:
 
 ```hcl
 aws_region       = "us-east-1"
 environment      = "dev"
-owner            = "your-team-name"
-allowed_ssh_cidr = "your.admin.ip/32"
+owner            = "matchiq"
+allowed_ssh_cidr = "203.0.113.0/32"
 
-KEY_PROXY   = "your-proxy-key-pair-name"
-KEY_GENERAL = "your-general-key-pair-name"
+KEY_PROXY   = "mi-key-proxy"
+KEY_GENERAL = "mi-key-general"
 ```
 
-> **Note:** `terraform.tfvars` is excluded from version control via `.gitignore`, as it may contain environment-specific or sensitive values.
+> `terraform.tfvars` está ignorado en `.gitignore` porque puede contener valores sensores o específicos del entorno.
 
-### 3. Initialize Terraform
+### 3. Inicializar Terraform
 
 ```bash
 terraform init
 ```
 
-### 4. Review the execution plan
+### 4. Revisar el plan
 
 ```bash
 terraform plan
 ```
 
-Always review the plan output before applying. Pay particular attention to any action marked `-/+` (destroy and recreate) on EC2 instances or security groups — these actions can cause downtime and should never be applied to running production infrastructure without explicit review.
+Verificar que no haya recursos marcados con `-/+` en producción sin revisión explícita.
 
-### 5. Apply the configuration
+### 5. Aplicar
 
 ```bash
 terraform apply
 ```
 
-Confirm with `yes` once the plan matches your expectations.
+Confirmar con `yes` cuando el plan coincida con lo esperado.
 
-## State Management
+## Gestión de estado
 
-> **Current setup:** this project uses **local Terraform state** (`terraform.tfstate`). Remote backend (S3 + DynamoDB) has not yet been implemented.
+El proyecto utiliza **backend remoto en S3** encriptado para `terraform.tfstate`.
 
-This is an accepted limitation for the current MVP stage, with the following operational implications:
+**Limitación actual:** no cuenta con tabla DynamoDB para locking. Esto significa que, en esta etapa MVP, se recomienda aplicar cambios desde un único operador o canal controlado para evitar condiciones de carrera en el estado.
 
-- The `terraform.tfstate` file is the single source of truth linking this codebase to the real AWS resources. It must **not** be deleted, and it is intentionally excluded from version control via `.gitignore` for security reasons (it may contain sensitive attribute values in plaintext).
-- Running `terraform init`, `plan`, and `apply` from a fresh clone of this repository **without the existing state file present** will cause Terraform to attempt to recreate all infrastructure from scratch, resulting in duplicate or conflicting resources.
-- Until a remote backend is implemented, infrastructure changes must be applied from the machine holding the current `terraform.tfstate` file, or that file must be securely transferred before running Terraform commands elsewhere.
-- **Planned improvement:** migrating to an S3 backend with DynamoDB state locking is the recommended next step to enable safe multi-operator collaboration and prevent state file loss.
+## Escaneo de seguridad
 
-## Operational Notes
+Ejecutar Checkov antes de aplicar cambios:
 
-- Instance types, AMIs, and storage configurations are pinned in code to match the currently running infrastructure. Any manual change made directly in the AWS Console must be reflected back into the corresponding `.tf` file as soon as possible to prevent configuration drift.
-- Root volumes are provisioned as `gp3` with `delete_on_termination = true`.
-- The reverse proxy holds a static Elastic IP with existing DNS records pointing to it; this IP must never be deallocated or reassigned without prior DNS migration.
+```bash
+checkov -d .
+```
 
-## Outputs
+El reporte generado incluye validaciones contra políticas CIS para AWS, incluyendo:
+- IMDSv2 requerido en instancias EC2
+- Security Groups aplicados a recursos
+- Cifrado de volúmenes y buckets S3
+- Logging de VPC
 
-After a successful `apply`, Terraform exposes the following outputs:
+## Pipeline CI/CD
 
-| Output | Description |
+El repositorio incluye un flujo de integración continua y despliegue automatizado mediante GitHub Actions que valida automáticamente cada cambio antes de aplicarlo en AWS.
+
+### Flujo automático
+
+1. **Push a `main`** — se dispara la pipeline automáticamente.
+2. **Validación de código** — ejecuta `terraform init`, `terraform plan` y escaneo con **Checkov**.
+3. **Análisis de calidad** — ejecuta **SonarQube Scanner** sobre los archivos `.tf`.
+4. **Notificaciones** — envía alertas por correo electrónico con el estado de la pipeline.
+5. **Apply automatizado** — si todas las validaciones pasan, aplica los cambios en AWS.
+
+### Secrets requeridos
+
+Para que la pipeline funcione es necesario configurar los siguientes secrets en el repositorio de GitHub:
+
+| Secret | Descripción |
 |---|---|
-| `proxy_public_ip` | Public IP of the reverse proxy |
-| `back_private_ip` | Private IP of the backend instance |
-| `front_private_ip` | Private IP of the frontend instance |
-| `ia_private_ip` | Private IP of the AI server instance |
-| `db_private_ip` | Private IP of the database instance |
-| `vpc_id` | ID of the provisioned VPC |
-| `vpc_cidr` | CIDR block of the VPC |
-| `sg_proxy_id` | Security group ID for the proxy |
+| `AWS_REGION` | Región de AWS donde se despliega la infraestructura (ej: `us-east-1`). |
+| `AWS_ROLE_ARN` | ARN del rol IAM creado para que GitHub Actions asuma permisos en AWS mediante OIDC. |
+| `SONAR_TOKEN` | Token de autenticación para SonarQube, usado en el análisis de calidad de código. |
+| `SSH_PUBLIC_KEY_PROXY` | Clave pública SSH para el servidor proxy, necesaria para acceso remoto. |
+| `SSH_PUBLIC_KEY_GENERAL` | Clave pública SSH para los servidores privados (app, workers, backend, db). |
+| `SMTP_USERNAME` | Usuario del servidor SMTP para envío de notificaciones por email. |
+| `SMTP_PASSWORD` | Contraseña del servidor SMTP para envío de notificaciones. |
+| `NOTIFY_EMAIL` | Dirección de correo destino donde se envían las notificaciones del pipeline. |
 
-## License
+### Configuración de secrets
 
-Private repository. All rights reserved.
+```bash
+# Desde GitHub CLI (requiere gh autenticado)
+gh secret set AWS_REGION --body "us-east-1"
+gh secret set AWS_ROLE_ARN --body "arn:aws:iam::123456789012:role/github-actions-terraform-role"
+gh secret set SONAR_TOKEN --body "tu-token-sonarqube"
+gh secret set SSH_PUBLIC_KEY_PROXY --body "$(cat ~/.ssh/id_rsa_proxy.pub)"
+gh secret set SSH_PUBLIC_KEY_GENERAL --body "$(cat ~/.ssh/id_rsa_general.pub)"
+gh secret set SMTP_USERNAME --body "usuario-smtp"
+gh secret set SMTP_PASSWORD --body "password-smtp"
+gh secret set NOTIFY_EMAIL --body "tu-email@dominio.com"
+```
+
+> Los secrets se configuran una sola vez en el repositorio de GitHub y se usan en todos los workflows sin necesidad de commitear valores sensibles.
+
+### OIDC en AWS
+
+La pipeline usa autenticación OIDC (OpenID Connect) para asumir un rol IAM en AWS sin necesidad de credenciales estáticas. El archivo `oidc_setup.tf` contiene la configuración base para crear el Identity Provider y el rol en AWS. Asegurate de completar el `thumbprint_list` y restringir la condición `StringLike` a tu organización/repositorio antes de aplicarlo.
+
+## Decisiones técnicas
+
+| Decisión | Justificación |
+|---|---|
+| Terraform modular | Reutilización, separación de responsabilidades y pruebas unitarias por módulo |
+| Subredes públicas/privadas | Aislamiento de servicios; solo el proxy es accesible desde internet |
+| Security Groups por servicio | Acceso granular, sin puertos abiertos a `0.0.0.0/0` innecesarios |
+| IMDSv2 obligatorio | Cumplimiento con CIS AWS Foundations Benchmark |
+| Backend S3 encriptado | Estado centralizado y protegido contra acceso no autorizado |
+| EBS gp3 + encriptado | Rendimiento optimizado con cifrado en reposo |
+| CI/CD automatizado | Validación de plan y seguridad antes de cualquier apply en AWS |
+
+## Roadmap
+
+- [ ] Agregar DynamoDB para locking del estado remoto
+- [ ] Incorporar módulo de autoescalado (ASG) para workers
+- [ ] Completar pipeline CI/CD con aprobación manual antes de `terraform apply`
+- [ ] Agregar monitoreo con CloudWatch y alarmas básicas
+- [ ] Migrar a Terraform Cloud/Enterprise para colaboración avanzada
+
+

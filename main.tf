@@ -48,7 +48,7 @@ module "compute" {
   subnet_publica_id    = module.networking.subnet_publica_id
   subnet_privada_id    = module.networking.subnet_privada_id
   sg_proxy_id          = module.security_groups.sg_proxy_id
-  sg_ia_id             = module.security_groups.sg_ia_id
+  sg_app1_id           = module.security_groups.sg_app1_id
   sg_front_id          = module.security_groups.sg_front_id
   sg_back_id           = module.security_groups.sg_back_id
   sg_db_id             = module.security_groups.sg_db_id
@@ -62,8 +62,8 @@ module "compute" {
 # module "iam_s3" {
 #   source = "./modules/iam_s3"
 #   bucket_name   = "bucket-for-testing-2026"
-#   iam_user_name = "airflow-logs-user"
-#   role_name     = "airflow-worker-role"
+#   iam_user_name = "app-logs-user"
+#   role_name     = "app-worker-role"
 #   environment   = var.environment
 #   owner         = var.owner
 # }

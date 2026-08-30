@@ -71,11 +71,11 @@ resource "aws_instance" "svr_back" {
   )
 }
 
-resource "aws_instance" "svr_ia" {
+resource "aws_instance" "svr_app1" {
   ami                         = var.ami
   instance_type               = "m7i-flex.large"
   subnet_id                   = var.subnet_privada_id
-  vpc_security_group_ids      = [var.sg_ia_id]
+  vpc_security_group_ids      = [var.sg_app1_id]
   key_name                    = local.key_general_name
   associate_public_ip_address = false
 
@@ -94,7 +94,7 @@ resource "aws_instance" "svr_ia" {
   tags = merge(
     local.common_tags,
     {
-      Name = "${local.name_prefix}-svr-ia"
+      Name = "${local.name_prefix}-svr-app1"
     }
   )
 }

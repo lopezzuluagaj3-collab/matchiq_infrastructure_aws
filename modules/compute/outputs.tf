@@ -3,9 +3,9 @@ output "proxy_public_ip" {
   value       = aws_instance.svr_proxy.public_ip
 }
 
-output "ia_private_ip" {
-  description = "IP privada del servidor IA (Airflow)"
-  value       = aws_instance.svr_ia.private_ip
+output "app1_private_ip" {
+  description = "IP privada del servidor App1"
+  value       = aws_instance.svr_app1.private_ip
 }
 
 output "back_private_ip" {
@@ -28,7 +28,7 @@ output "all_instances_ids" {
   value = {
     proxy = aws_instance.svr_proxy.id
     back  = aws_instance.svr_back.id
-    ia    = aws_instance.svr_ia.id
+    app1  = aws_instance.svr_app1.id
     db    = aws_instance.svr_db.id
     front = aws_instance.svr_front.id
   }
@@ -39,7 +39,7 @@ output "all_instances_public_ips" {
   value = {
     proxy = aws_instance.svr_proxy.public_ip
     back  = aws_instance.svr_back.public_ip
-    ia    = aws_instance.svr_ia.public_ip
+    app1  = aws_instance.svr_app1.public_ip
     db    = aws_instance.svr_db.public_ip
     front = aws_instance.svr_front.public_ip
   }

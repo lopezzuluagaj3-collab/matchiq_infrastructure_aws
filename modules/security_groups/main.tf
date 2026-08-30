@@ -51,13 +51,13 @@ resource "aws_security_group" "sg_proxy" {
   )
 }
 
-resource "aws_security_group" "sg_ia" {
-  name        = "${local.name_prefix}-sg-ia"
-  description = "Grupo de seguridad para Airflow master - solo desde proxy"
+resource "aws_security_group" "sg_app1" {
+  name        = "${local.name_prefix}-sg-app1"
+  description = "Grupo de seguridad para App Server 1"
   vpc_id      = var.vpc_id
 
   ingress {
-    description     = "HTTP Airflow UI"
+    description     = "HTTP App1"
     from_port       = 8000
     to_port         = 8000
     protocol        = "tcp"
@@ -80,14 +80,14 @@ resource "aws_security_group" "sg_ia" {
   tags = merge(
     local.common_tags,
     {
-      Name = "${local.name_prefix}-sg-airflow"
+      Name = "${local.name_prefix}-sg-app1"
     }
   )
 }
 
 resource "aws_security_group" "sg_front" {
   name        = "${local.name_prefix}-sg-front"
-  description = "Grupo de seguridad para los workers de Airflow"
+  description = "Grupo de seguridad para los workers"
   vpc_id      = var.vpc_id
 
   ingress {
@@ -114,7 +114,7 @@ resource "aws_security_group" "sg_front" {
   tags = merge(
     local.common_tags,
     {
-      Name = "${local.name_prefix}-sg-worker-airflow"
+      Name = "${local.name_prefix}-sg-worker-front"
     }
   )
 }
@@ -186,11 +186,11 @@ resource "aws_security_group" "sg_db" {
   }
 
   ingress {
-    description     = "port for sg_back"
+    description     = "port for app1"
     from_port       = 5432
     to_port         = 5432
     protocol        = "tcp"
-    security_groups = [aws_security_group.sg_ia.id]
+    security_groups = [aws_security_group.sg_app1.id]
   }
 
   egress {

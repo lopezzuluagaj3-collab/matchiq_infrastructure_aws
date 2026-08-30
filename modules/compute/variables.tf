@@ -18,13 +18,13 @@ variable "sg_proxy_id" {
   type        = string
 }
 
-variable "sg_ia_id" {
-  description = "ID del security group de Airflow (IA)"
+variable "sg_app1_id" {
+  description = "ID del security group del servidor App1"
   type        = string
 }
 
 variable "sg_front_id" {
-  description = "ID del security group de workers de Airflow (front)"
+  description = "ID del security group de workers (front)"
   type        = string
 }
 
