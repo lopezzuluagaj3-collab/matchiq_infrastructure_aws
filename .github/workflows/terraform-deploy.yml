@@ -55,7 +55,7 @@ jobs:
           directory: .
           framework: terraform
           output_format: cli,json
-          output_file_path: console,checkov-report.json
+          output_file_path: checkov-report.txt,checkov-report.json
           soft_fail: true  # no bloquea el pipeline por defecto...
           hard_fail_on: CKV_AWS_79  # ...pero SÍ bloquea si aparece IMDSv1 (riesgo real)
           skip_check: CKV_AWS_88,CKV_AWS_130,CKV_AWS_260,CKV_AWS_24,CKV_AWS_273  # falsos positivos ya conocidos en esta arquitectura
@@ -68,7 +68,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: checkov-report
-          path: checkov-report.json
+          path: |
+            checkov-report.txt
+            checkov-report.json
           if-no-files-found: warn
           retention-days: 14
 
@@ -162,7 +164,7 @@ jobs:
       - name: Asegurar que existan los reportes antes de adjuntar
         if: always()
         run: |
-          for f in plan_output.txt sonar_result.txt checkov-report.json; do
+          for f in plan_output.txt sonar_result.txt checkov-report.txt checkov-report.json; do
             [ -f "$f" ] || touch "$f"
           done
 
@@ -181,6 +183,7 @@ jobs:
           attachments: |
             plan_output.txt
             sonar_result.txt
+            checkov-report.txt
             checkov-report.json
 
   apply:
