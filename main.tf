@@ -57,13 +57,3 @@ module "compute" {
   environment          = var.environment
   owner                = var.owner
 }
-
-# Módulo iam_s3 comentado temporalmente (sin uso por el momento)
-# module "iam_s3" {
-#   source = "./modules/iam_s3"
-#   bucket_name   = "bucket-for-testing-2026"
-#   iam_user_name = "app-logs-user"
-#   role_name     = "app-worker-role"
-#   environment   = var.environment
-#   owner         = var.owner
-# }
